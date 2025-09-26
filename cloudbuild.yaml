@@ -1,0 +1,36 @@
+# cloudbuild.yaml
+steps:
+# Step 1: Build the Docker image and push it to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  id: Build and Push
+  args:
+    - 'build'
+    - '-t'
+    - 'us-central1-docker.pkg.dev/Aphrodite-66393/cloudbuild-docker-repo/cloudbuild-cloudrun-app:$COMMIT_SHA'
+    - '.'
+- name: 'gcr.io/cloud-builders/docker'
+  id: Push to Artifact Registry
+  args:
+    - 'push'
+    - 'us-central1-docker.pkg.dev/Aphrodite-66393/cloudbuild-docker-repo/cloudbuild-cloudrun-app:$COMMIT_SHA'
+
+# Step 2: Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: Deploy to Cloud Run
+  entrypoint: gcloud
+  args:
+    - 'run'
+    - 'deploy'
+    - 'cloudbuild-cloudrun-app' # Name of your Cloud Run service
+    - '--image'
+    - 'us-central1-docker.pkg.dev/Aphrodite-66393/cloudbuild-docker-repo/cloudbuild-cloudrun-app:$COMMIT_SHA'
+    - '--region'
+    - 'us-central1' # Explicitly set to us-central1
+    - '--platform'
+    - 'managed'
+    - '--allow-unauthenticated' # Allow public access to the service
+    - '--project'
+    - 'Aphrodite-66393' # Explicitly set project for Cloud Run deployment
+    - '--set-env-vars=BUILD_ID=$BUILD_ID' # Pass Cloud Build ID as an env var to the app
+images:
+- 'us-central1-docker.pkg.dev/Aphrodite-66393/cloudbuild-docker-repo/cloudbuild-cloudrun-app:$COMMIT_SHA'
